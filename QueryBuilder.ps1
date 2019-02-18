@@ -11,17 +11,22 @@ function Read-Query
 		[string]$database
 	)
 
-	if ($null -eq $Global:SqlConnection) {
+	if ($null -eq $Global:SqlConnection -or $null -eq $Global:SqlConnection.ConnectionString) {
+		$connectionString = "Server=$server;Database=$database;Integrated Security=True"
+		Write-Host "Create connection: $connectionString"
 		$Global:SqlConnection = New-Object System.Data.SqlClient.SqlConnection
-		$Global:SqlConnection.ConnectionString = "Server=$server;Database=$database;Integrated Security=True"
+		$Global:SqlConnection.ConnectionString = $connectionString
+		$Global:SqlConnection.Open()
 	}
 
 
 	if ($Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Broken)) {
+		Write-Host "Broken connection closed"
 		$Global:SqlConnection.Close();
 	}
 
 	if (! $Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Open)) {
+		Write-Host "Reopen connection : $($Global:SqlConnection.ConnectionString)"
 		$Global:SqlConnection.Open()
 	}
 
@@ -30,25 +35,49 @@ function Read-Query
 	$SqlCmd.Connection = $Global:SqlConnection
 	$reader = $SqlCmd.ExecuteReader()
 
-	$dt=new-object System.Data.DataTable
+	$dt = new-object System.Data.DataTable
 	$dt.Load($reader)
 
 	return $dt
 }
 
+function OpenConnection {
+
+	if ($null -eq $Global:SqlConnection -or $null -eq $Global:SqlConnection.ConnectionString) {
+		Write-Host "Create connection with string ${Server=$server;Database=$database;Integrated Security=True}"
+		$Global:SqlConnection = New-Object System.Data.SqlClient.SqlConnection
+		$Global:SqlConnection.ConnectionString = "Server=$server;Database=$database;Integrated Security=True"
+	}
+
+
+	if ($Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Broken)) {
+		Write-Host "Broken connection closed"
+		$Global:SqlConnection.Close();
+	}
+
+	if (! $Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Open)) {
+		Write-Host "Reopen connection : ${$Global:SqlConnection.ConnectionString}"
+		$Global:SqlConnection.Open()
+	}
+}
+
 function Set-Connection {
 	[CmdletBinding()]
 	param (
-		[parameter(Position=0)] $server = 'sdf'
+		[parameter(Position=0)] $server
 	)
 
 	DynamicParam
 	{
+		$Global:SqlConnection = $null
+
 		# Generate and set the ValidateSet
 		$ParameterName = 'database'
 
 		$query = 'SELECT name from sys.databases'
 		$arrSet = Read-Query $query -server $server -database 'master' | Select-Object -ExpandProperty Name
+
+		$Global:SqlConnection = $null
 
 		return Get-DinamicParam $ParameterName $arrSet 1;
 	}
@@ -71,7 +100,7 @@ function Set-Connection {
 			New-Item -ItemType Directory '~\.sqlbuilder'
 		}
 
-		$connection| ConvertTo-Json | out-file '~\.sqlbuilder\connection'
+		$connection | ConvertTo-Json | out-file '~\.sqlbuilder\connection'
 	}
 
 
@@ -141,7 +170,11 @@ function Get-DinamicParam {
 }
 
 function run {
-	$dt = get-result $Global:BuildQuery;
+	param (
+		$query = $Global:BuildQuery
+	)
+
+	$dt = get-result $query;
 	if ( $dt.Table.Rows.Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
