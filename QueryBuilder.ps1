@@ -174,11 +174,13 @@ function run {
 		$query = $Global:BuildQuery
 	)
 
+	Write-Host $query
+
 	$dt = get-result $query;
 	if ( $dt.Table.Rows.Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
-	$dt | Format-Table | Out-String | ForEach-Object {Write-Host $_}
+	$dt | Select-Object -Property * -ExcludeProperty RowError, RowState, Table, ItemArray, HasErrors | Format-Table * -Wrap | Out-String | ForEach-Object {Write-Host $_}
 }
 
 function get-result {
@@ -197,3 +199,66 @@ function get-connection {
 
 Set-PSReadlineKeyHandler -ScriptBlock { "`n" + $Global:BuildQuery | Write-Host -NoNewline } -Chord 'F4'
 Set-PSReadlineKeyHandler -ScriptBlock {run} -Chord 'F5'
+
+function fro
+{
+	[CmdletBinding()]
+	param()
+	DynamicParam
+	{
+		# Generate and set the ValidateSet
+		$ParameterName = 'Table'
+
+		$query = 'SELECT SCHEMA_NAME(schema_id) + ''.'' + name AS Name FROM sys.objects WHERE type = ''U'' ORDER BY SCHEMA_NAME(schema_id), name'
+		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+
+		return Get-DinamicParam $ParameterName $arrSet 0;
+	}
+
+	begin
+	{
+		# Bind the parameter to a friendly variable
+		$TableName = $PsBoundParameters[$ParameterName]
+	}
+
+	process
+	{
+		$Global:qbSelect = $null
+		$Global:qbFrom = "FROM $TableName"
+
+		run "SELECT TOP 100 *  $Global:qbFrom"
+	}
+}
+
+function sel
+{
+	[CmdletBinding()]
+	param()
+	DynamicParam
+	{
+		# Generate and set the ValidateSet
+		$ParameterName = 'Column'
+
+		$query = "SELECT name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 0) "
+		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+
+		return Get-DinamicParam $ParameterName $arrSet 0;
+	}
+
+	begin
+	{
+		# Bind the parameter to a friendly variable
+		$ColumnName = $PsBoundParameters[$ParameterName]
+	}
+
+	process
+	{
+		if ($null -eq $Global:qbSelect) {
+			$Global:qbSelect = "SELECT $ColumnName"
+		}else {
+			$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
+		}
+
+		run "$Global:qbSelect $Global:qbFrom"
+	}
+}
