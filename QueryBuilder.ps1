@@ -240,8 +240,7 @@ function sel
 	{
 		# Generate and set the ValidateSet
 		$ParameterName = 'Column'
-
-		$query = "SELECT name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 0) "
+		$query = "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
 		$arrSet = get-result $query | Select-Object -ExpandProperty Name
 
 		return Get-DinamicParam $ParameterName $arrSet 0;
