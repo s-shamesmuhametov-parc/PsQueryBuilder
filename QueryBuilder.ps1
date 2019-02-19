@@ -171,10 +171,9 @@ function Get-DinamicParam {
 
 function run {
 	param (
+		[Parameter(Position = 0, ValueFromPipeline = $true)]
 		$query = $Global:BuildQuery
 	)
-
-	Write-Host $query
 
 	$dt = get-result $query;
 	if ( $dt.Table.Rows.Count -eq 0) {
@@ -189,6 +188,8 @@ function get-result {
 	)
 
 	$connection = get-connection
+
+	Write-Host $query
 
 	return Read-Query $query -server $connection.Server -database $connection.Database
 }
@@ -224,9 +225,10 @@ function fro
 	process
 	{
 		$Global:qbSelect = $null
+		$Global:qbWhere = $null
 		$Global:qbFrom = "FROM $TableName"
 
-		run "SELECT TOP 100 *  $Global:qbFrom"
+		BuildQuery | run
 	}
 }
 
@@ -259,6 +261,82 @@ function sel
 			$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
 		}
 
-		run "$Global:qbSelect $Global:qbFrom"
+		BuildQuery | run
+	}
+}
+
+function BuildQuery {
+	if ($null -eq $Global:qbSelect)
+	{
+		$query = "SELECT TOP 100 *"
+	}
+	else
+	{
+		$query = $Global:qbSelect
+	}
+
+	$query = "$query $Global:qbFrom"
+
+	if ($null -ne $Global:qbWhere)
+	{
+		$query = "$query $Global:qbWhere"
+	}
+
+	Write-Output $query;
+}
+
+function whe {
+	[CmdletBinding()]
+	param (
+		[Parameter(Position = 0)]
+		$expression
+	)
+
+	$Global:qbWhere = "WHERE $expression";
+
+	BuildQuery | run
+}
+
+function join {
+	[CmdletBinding()]
+	param ()
+	DynamicParam
+	{
+		# Generate and set the ValidateSet
+		$ParameterName = 'Join'
+
+		$query = @'
+		SELECT
+		'JOIN [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'] ON [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N'] = [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N']' AS Name
+	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC
+	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU1
+		ON KCU1.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG
+		AND KCU1.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA
+		AND KCU1.CONSTRAINT_NAME = RC.CONSTRAINT_NAME
+	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU2
+		ON KCU2.CONSTRAINT_CATALOG = RC.UNIQUE_CONSTRAINT_CATALOG
+		AND KCU2.CONSTRAINT_SCHEMA = RC.UNIQUE_CONSTRAINT_SCHEMA
+		AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME
+		AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
+	WHERE KCU1.TABLE_SCHEMA + '.' + KCU1.TABLE_NAME  = 'CaseMap.Projects'
+'@
+		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+
+		return Get-DinamicParam $ParameterName $arrSet 0;
+	}
+
+	begin
+	{
+		# Bind the parameter to a friendly variable
+		$Join = $PsBoundParameters[$ParameterName]
+	}
+
+	process
+	{
+		# $Global:qbSelect = $null
+		# $Global:qbWhere = $null
+		$Global:qbFrom = "$Global:qbFrom $Join"
+
+		BuildQuery | run
 	}
 }
