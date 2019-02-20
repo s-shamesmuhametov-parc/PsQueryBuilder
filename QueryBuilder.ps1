@@ -179,7 +179,7 @@ function run {
 	if ( $dt.Table.Rows.Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
-	$dt | Select-Object -Property * -ExcludeProperty RowError, RowState, Table, ItemArray, HasErrors | Format-Table * -Wrap | Out-String | ForEach-Object {Write-Host $_}
+	$dt | Select-Object -Property * -ExcludeProperty RowError, RowState, Table, ItemArray, HasErrors | Format-Table * | Out-String | ForEach-Object {Write-Host $_}
 }
 
 function get-result {
@@ -226,7 +226,7 @@ function fro
 	{
 		$Global:qbSelect = $null
 		$Global:qbWhere = $null
-		$Global:qbRoot = $TableName
+		$Global:qbRoot = @($TableName)
 		$Global:qbFrom = "FROM $TableName"
 
 		BuildQuery | run
@@ -319,7 +319,7 @@ function join {
 			AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME
 			AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 	WHERE
-		KCU1.TABLE_SCHEMA + '.' + KCU1.TABLE_NAME  = '$Global:qbRoot'
+		KCU1.TABLE_SCHEMA + '.' + KCU1.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 	UNION ALL
 	SELECT
 		'JOIN [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'] ON [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N'] = [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N']' AS Name
@@ -334,7 +334,7 @@ function join {
 			AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME
 			AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 	WHERE
-		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME  = '$Global:qbRoot'
+		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
 "@
 		$arrSet = get-result $query | Select-Object -ExpandProperty Name
@@ -345,6 +345,8 @@ function join {
 	begin
 	{
 		# Bind the parameter to a friendly variable
+		$Join -match 'JOIN \[(\w+)\].\[(\w+)\] ON'
+		$Global:qbRoot += $Matches[1] + '.' + $Matches[2]
 		$Join = $PsBoundParameters[$ParameterName]
 	}
 
