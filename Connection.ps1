@@ -32,7 +32,8 @@ function Open-Connection
 function Set-Connection {
 	[CmdletBinding()]
 	param (
-		[parameter(Position=0)] $server
+		[Parameter(Position=0)]
+		$server
 	)
 
 	DynamicParam
@@ -63,15 +64,15 @@ function Set-Connection {
 			Database=$database
 		}
 
-		if (!(test-path '~\.sqlbuilder'))
+		if (!(Test-Path '~\.sqlbuilder'))
 		{
 			New-Item -ItemType Directory '~\.sqlbuilder'
 		}
 
-		$connection | ConvertTo-Json | out-file '~\.sqlbuilder\connection'
+		$connection | ConvertTo-Json | Out-File '~\.sqlbuilder\connection'
 	}
 }
 
-function Get-connection {
-	get-content '~\.sqlbuilder\connection' -Raw | ConvertFrom-Json
+function Get-Connection {
+	Get-Content '~\.sqlbuilder\connection' -Raw | ConvertFrom-Json
 }

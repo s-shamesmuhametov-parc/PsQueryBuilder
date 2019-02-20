@@ -22,7 +22,7 @@ function BuildQuery {
 	Write-Output $query;
 }
 
-function fro
+function Fro
 {
 	[CmdletBinding()]
 	param()
@@ -54,7 +54,7 @@ function fro
 	}
 }
 
-function sel
+function Sel
 {
 	[CmdletBinding()]
 	param()
@@ -86,7 +86,7 @@ function sel
 	}
 }
 
-function where {
+function Where {
 	[CmdletBinding()]
 	param (
 		[Parameter(Position = 0)]
@@ -95,10 +95,10 @@ function where {
 
 	$Global:qbWhere = "WHERE $expression";
 
-	BuildQuery | run
+	BuildQuery | Run
 }
 
-function join {
+function Join {
 	[CmdletBinding()]
 	param ()
 	DynamicParam
@@ -157,6 +157,6 @@ function join {
 		# $Global:qbWhere = $null
 		$Global:qbFrom = "$Global:qbFrom $Join"
 
-		BuildQuery | run
+		BuildQuery | Run
 	}
 }
