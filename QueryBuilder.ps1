@@ -5,7 +5,7 @@
 function BuildQuery {
 	if ($null -eq $Global:qbSelect)
 	{
-		$query = "SELECT TOP 100 *"
+		$query = "SELECT TOP 50 *"
 	}
 	else
 	{
@@ -17,6 +17,11 @@ function BuildQuery {
 	if ($null -ne $Global:qbWhere)
 	{
 		$query = "$query $Global:qbWhere"
+	}
+
+	if ($null -ne $Global:qbOrder)
+	{
+		$query = "$query $Global:qbOrder"
 	}
 
 	Write-Output $query;
@@ -47,6 +52,7 @@ function Fro
 	{
 		$Global:qbSelect = $null
 		$Global:qbWhere = $null
+		$Global:qbOrder = $null
 		$Global:qbRoot = @($TableName)
 		$Global:qbFrom = "FROM $TableName"
 
@@ -77,7 +83,7 @@ function Sel
 	process
 	{
 		if ($null -eq $Global:qbSelect) {
-			$Global:qbSelect = "SELECT $ColumnName"
+			$Global:qbSelect = "SELECT TOP 50 $ColumnName"
 		}else {
 			$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
 		}
@@ -86,7 +92,7 @@ function Sel
 	}
 }
 
-function Where {
+function Wher {
 	[CmdletBinding()]
 	param (
 		[Parameter(Position = 0)]
@@ -96,6 +102,36 @@ function Where {
 	$Global:qbWhere = "WHERE $expression";
 
 	BuildQuery | Run
+}
+
+function OrderBy {
+	[CmdletBinding()]
+	param ()
+	DynamicParam
+	{
+		$ParameterColumn = 'Column'
+		$ParameterDesc = 'Desc'
+
+		$query = "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
+		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+
+		$parameters = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+		$parameters.Add($ParameterColumn, (Get-StringAutocomletionParam $ParameterColumn $arrSet 0));
+		$parameters.Add($ParameterDesc, (Get-SwitchParam $ParameterDesc 1));
+
+		return $parameters;
+	}
+
+	process
+	{
+		$Global:qbOrder = "ORDER BY $($PsBoundParameters[$ParameterColumn])";
+
+		if ($PsBoundParameters[$ParameterDesc]) {
+			$Global:qbOrder += ' DESC'
+		}
+
+		BuildQuery | Run
+	}
 }
 
 function Join {
