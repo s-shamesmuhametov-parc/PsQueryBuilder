@@ -16,7 +16,7 @@ Set-Connection '(localdb)\MSSQLLocalDB' TestDatabase <# parameter with tab autoc
 # 2. Select all columns from table
 Fro dbo.TestTable <# parameter with tab autocompletion #>
 
-# 3. Add column to select expression
+# 3. Set first column to select expression
 Sel TestTable.TestColumn <# parameter with tab autocompletion #>
 
 # 4. Join table to current table
