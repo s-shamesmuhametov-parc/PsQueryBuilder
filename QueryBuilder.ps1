@@ -32,7 +32,7 @@ function Fro
 		$ParameterName = 'Table'
 
 		$query = 'SELECT SCHEMA_NAME(schema_id) + ''.'' + name AS Name FROM sys.objects WHERE type = ''U'' ORDER BY SCHEMA_NAME(schema_id), name'
-		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+		$arrSet = Get-Result $query | Select-Object -ExpandProperty Name
 
 		return Get-DinamicParam $ParameterName $arrSet 0;
 	}
@@ -146,15 +146,13 @@ function Join {
 	begin
 	{
 		# Bind the parameter to a friendly variable
-		$Join -match 'JOIN \[(\w+)\].\[(\w+)\] ON'
-		$Global:qbRoot += $Matches[1] + '.' + $Matches[2]
 		$Join = $PsBoundParameters[$ParameterName]
 	}
 
 	process
 	{
-		# $Global:qbSelect = $null
-		# $Global:qbWhere = $null
+		$Join -match 'JOIN \[(\w+)\].\[(\w+)\] ON'
+		$Global:qbRoot += $Matches[1] + '.' + $Matches[2]
 		$Global:qbFrom = "$Global:qbFrom $Join"
 
 		BuildQuery | Run
