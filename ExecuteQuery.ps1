@@ -35,7 +35,11 @@ function Run {
 	if ( $dt.Table.Rows.Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
-	$dt | Select-Object -Property * -ExcludeProperty RowError, RowState, Table, ItemArray, HasErrors | Format-Table * | Out-String | ForEach-Object {Write-Host $_}
+	$dt `
+		| Select-Object -Property * -ExcludeProperty RowError, RowState, Table, ItemArray, HasErrors `
+		| Format-Table * `
+		| Out-String `
+		| ForEach-Object {Write-Host $_}
 }
 
 function Get-Result {
@@ -43,7 +47,7 @@ function Get-Result {
 		$query
 	)
 
-	$connection = get-connection
+	$connection = Get-Connection
 
 	Write-Host $query
 
