@@ -24,4 +24,7 @@ join '[dbo].[TestTable2] ON [dbo].[TestTable2].[Id] = [dbo].[TestTable].[TestTab
 
 # 5. Add select column from joined table
 Sel TestTable2.TestColumn <# parameter with tab autocompletion #>
+
+# 6. Run custom query
+run 'SELECT COUNT(1) FROM dbo.TestTable'
 ```
