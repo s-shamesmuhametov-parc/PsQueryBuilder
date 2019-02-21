@@ -108,7 +108,7 @@ function Join {
 
 		$query = @"
 	SELECT
-		'JOIN [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'] ON [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N'] = [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N']' AS Name
+		'[' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'] ON [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N'] = [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N']' AS Name
 	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC
 	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU1
 			ON KCU1.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG
@@ -123,7 +123,7 @@ function Join {
 		KCU1.TABLE_SCHEMA + '.' + KCU1.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 	UNION ALL
 	SELECT
-		'JOIN [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'] ON [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N'] = [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N']' AS Name
+		'[' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'] ON [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N'] = [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N']' AS Name
 	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC
 	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU1
 			ON KCU1.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG
@@ -151,9 +151,9 @@ function Join {
 
 	process
 	{
-		$Join -match 'JOIN \[(\w+)\].\[(\w+)\] ON'
+		$Join -match '\[(\w+)\].\[(\w+)\] ON'
 		$Global:qbRoot += $Matches[1] + '.' + $Matches[2]
-		$Global:qbFrom = "$Global:qbFrom $Join"
+		$Global:qbFrom = "$Global:qbFrom LEFT JOIN $Join"
 
 		BuildQuery | Run
 	}
