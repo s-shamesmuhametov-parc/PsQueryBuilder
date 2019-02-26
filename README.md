@@ -22,7 +22,7 @@ Sel TestTable.TestColumn <# parameter with tab autocompletion #>
 # 4. Join table to current table
 join '[dbo].[TestTable2] ON [dbo].[TestTable2].[Id] = [dbo].[TestTable].[TestTable2Id]' <# parameter with tab autocompletion #>
 
-# 5. Add select column from joined table
+# 5. Add column to select expression from joined table
 Sel TestTable2.TestColumn <# parameter with tab autocompletion #>
 
 # 6. Add sorting by column
