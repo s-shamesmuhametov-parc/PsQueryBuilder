@@ -61,7 +61,7 @@ function Fro
 	BuildQuery | run
 }
 
-Register-ArgumentCompleter -CommandName Sel -ParameterName ColumnName -ScriptBlock {
+Register-ArgumentCompleter -CommandName Sel, OrderBy -ParameterName ColumnName -ScriptBlock {
 	param($wordToComplete, $commandAst, $cursorPosition)
 
 	Get-ArrayByQuery @"
@@ -115,42 +115,24 @@ Register-ArgumentCompleter -CommandName OrderBy -ParameterName Column -ScriptBlo
 
 function OrderBy {
 	[CmdletBinding()]
-	param ()
-	DynamicParam
-	{
-		$ParameterColumn = 'Column'
-		$ParameterDesc = 'Desc'
+	param (
+		[string]$ColumnName,
+		[switch]$Desc
+	)
 
-		$arrSet = Get-ArrayByQuery "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
+	$Global:qbOrder = "ORDER BY $ColumnName";
 
-		$parameters = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-		$parameters.Add($ParameterColumn, (Get-StringAutocomletionParam $ParameterColumn $arrSet 0));
-		$parameters.Add($ParameterDesc, (Get-SwitchParam $ParameterDesc 1));
-
-		return $parameters;
+	if ($Desc) {
+		$Global:qbOrder += ' DESC'
 	}
 
-	process
-	{
-		$Global:qbOrder = "ORDER BY $($PsBoundParameters[$ParameterColumn])";
-
-		if ($PsBoundParameters[$ParameterDesc]) {
-			$Global:qbOrder += ' DESC'
-		}
-
-		BuildQuery | Run
-	}
+	BuildQuery | Run
 }
 
-function Join {
-	[CmdletBinding()]
-	param ()
-	DynamicParam
-	{
-		# Generate and set the ValidateSet
-		$ParameterName = 'Join'
+Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
 
-		$arrSet = Get-ArrayByQuery @"
+	Get-ArrayByQuery @"
 	SELECT
 		'[' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'] ON [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N'] = [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N']' AS Name
 	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC
@@ -181,23 +163,22 @@ function Join {
 	WHERE
 		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
-"@
+"@ | ?{ ($_ -contains $cursorPosition) -or ([string]::IsNullOrWhiteSpace($cursorPosition)) } | ForEach-Object { "'$_'" } | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+		}
+}
 
-		return Get-DinamicParam $ParameterName $arrSet 0;
-	}
+function Join {
+	[CmdletBinding()]
+	param (
+		[string]$Expression
+	)
 
-	begin
-	{
-		# Bind the parameter to a friendly variable
-		$Join = $PsBoundParameters[$ParameterName]
-	}
-
-	process
-	{
-		$Join -match '\[(\w+)\].\[(\w+)\] ON'
+	if ($Expression -match '\[(\w+)\].\[(\w+)\] ON') {
 		$Global:qbRoot += $Matches[1] + '.' + $Matches[2]
-		$Global:qbFrom = "$Global:qbFrom LEFT JOIN $Join"
-
-		BuildQuery | Run
 	}
+
+	$Global:qbFrom = "$Global:qbFrom LEFT JOIN $Expression"
+
+	BuildQuery | Run
 }

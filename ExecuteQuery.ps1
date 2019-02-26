@@ -17,7 +17,12 @@ function Read-Query
 	$SqlCmd = New-Object System.Data.SqlClient.SqlCommand
 	$SqlCmd.CommandText = $Query
 	$SqlCmd.Connection = $Global:SqlConnection
-	$reader = $SqlCmd.ExecuteReader()
+	try {
+		$reader = $SqlCmd.ExecuteReader()
+	}
+	catch {
+		Write-Error "Query $Query"
+	}
 
 	$dt = new-object System.Data.DataTable
 	$dt.Load($reader)
