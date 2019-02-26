@@ -31,15 +31,17 @@ function BuildQuery {
 Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
 	param($wordToComplete, $commandAst, $cursorPosition)
 
-	Get-ArrayByQuery @"
-		SELECT SCHEMA_NAME(schema_id) + '.' + name AS Name
+	Get-Result @"
+		SELECT
+			SCHEMA_NAME(schema_id) + '.' + name AS Name,
+			type_desc
 		FROM sys.all_objects
 		WHERE 1=1
 			AND type not in ('TR', 'UK', 'C', 'D', 'F', 'PK', 'UQ')
 			AND (SCHEMA_NAME(schema_id) + '.' + name) LIKE N'%$cursorPosition%'
 		ORDER BY SCHEMA_NAME(schema_id), name
 "@ | ForEach-Object {
-			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+			[System.Management.Automation.CompletionResult]::new($_.Name, $_.Name, 'ParameterValue', $_.type_desc + ' ' + $_.Name)
 		}
 }
 
