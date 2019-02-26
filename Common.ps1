@@ -7,7 +7,6 @@ function Get-DinamicParam
         $position = 0
     )
 
-    # Create the dictionary
     $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
     $RuntimeParameter = Get-StringAutocomletionParam $ParameterName $arrSet $position
@@ -17,29 +16,25 @@ function Get-DinamicParam
 }
 
 function Get-StringAutocomletionParam {
-      param
-      (
-          $ParameterName,
-          $arrSet,
-          $position = 0
-      )
-      # Create the collection of attributes
-      $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+    param
+    (
+        $ParameterName,
+        $arrSet,
+        $position = 0
+    )
+    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
 
-      # Create and set the parameters' attributes
-      $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
-      $ParameterAttribute.Mandatory = $true
-      $ParameterAttribute.Position = $position
+    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+    $ParameterAttribute.Mandatory = $true
+    $ParameterAttribute.Position = $position
 
-      # Add the attributes to the attributes collection
-      $AttributeCollection.Add($ParameterAttribute)
+    $AttributeCollection.Add($ParameterAttribute)
 
-      $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+    if ($arrSet -ne $null) {
+        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+        $AttributeCollection.Add($ValidateSetAttribute)
+    }
 
-      # Add the ValidateSet to the attributes collection
-      $AttributeCollection.Add($ValidateSetAttribute)
-
-      # Create and return the dynamic parameter
       return New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
 }
 
