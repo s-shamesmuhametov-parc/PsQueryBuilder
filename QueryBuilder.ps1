@@ -36,7 +36,7 @@ function Fro
 		# Generate and set the ValidateSet
 		$ParameterName = 'Table'
 
-		$query = 'SELECT SCHEMA_NAME(schema_id) + ''.'' + name AS Name FROM sys.objects WHERE type = ''U'' ORDER BY SCHEMA_NAME(schema_id), name'
+		$query = 'SELECT SCHEMA_NAME(schema_id) + ''.'' + name AS Name FROM sys.all_objects where type not in (''TR'', ''UK'', ''C'', ''D'', ''F'', ''PK'', ''UQ'') ORDER BY SCHEMA_NAME(schema_id), name'
 		$arrSet = Get-Result $query | Select-Object -ExpandProperty Name
 
 		return Get-DinamicParam $ParameterName $arrSet 0;
@@ -68,7 +68,7 @@ function Sel
 	{
 		# Generate and set the ValidateSet
 		$ParameterName = 'Column'
-		$query = "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
+		$query = "SELECT ISNULL(source_table + '.', '') + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
 		$arrSet = get-result $query | Select-Object -ExpandProperty Name
 
 		return Get-DinamicParam $ParameterName $arrSet 0;
