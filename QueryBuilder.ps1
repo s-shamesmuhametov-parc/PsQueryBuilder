@@ -29,7 +29,7 @@ function BuildQuery {
 }
 
 Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
+	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
 	Get-Result @"
 		SELECT
@@ -38,7 +38,7 @@ Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
 		FROM sys.all_objects
 		WHERE 1=1
 			AND type not in ('TR', 'UK', 'C', 'D', 'F', 'PK', 'UQ')
-			AND (SCHEMA_NAME(schema_id) + '.' + name) LIKE N'%$cursorPosition%'
+			AND (SCHEMA_NAME(schema_id) + '.' + name) LIKE N'%$wordToComplete%'
 		ORDER BY SCHEMA_NAME(schema_id), name
 "@ | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new($_.Name, $_.Name, 'ParameterValue', $_.type_desc + ' ' + $_.Name)
@@ -63,12 +63,12 @@ function Fro
 }
 
 Register-ArgumentCompleter -CommandName Sel, OrderBy -ParameterName ColumnName -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
+	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
 	Get-ArrayByQuery @"
 		SELECT ISNULL(source_table + '.', '') + name AS Name
 		FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1)
-		WHERE (source_table + '.' + name) LIKE N'%$cursorPosition%'
+		WHERE (source_table + '.' + name) LIKE N'%$wordToComplete%'
 "@ | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
 		}
@@ -103,12 +103,12 @@ function Wher {
 }
 
 Register-ArgumentCompleter -CommandName OrderBy -ParameterName Column -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
+	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
 	Get-ArrayByQuery @"
 		SELECT source_table + '.' + name AS Name
 		FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1)
-		WHERE (source_table + '.' + name) LIKE N'%$cursorPosition%'
+		WHERE (source_table + '.' + name) LIKE N'%$wordToComplete%'
 "@ | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
 		}
@@ -131,7 +131,7 @@ function OrderBy {
 }
 
 Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
+	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
 	Get-ArrayByQuery @"
 	SELECT
@@ -164,7 +164,7 @@ Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBl
 	WHERE
 		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
-"@ | ?{ ($_ -contains $cursorPosition) -or ([string]::IsNullOrWhiteSpace($cursorPosition)) } | ForEach-Object { "'$_'" } | ForEach-Object {
+"@ | ?{ ($_ -like "*$wordToComplete*") -or ([string]::IsNullOrWhiteSpace($wordToComplete)) } | ForEach-Object { "'$_'" } | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
 		}
 }

@@ -27,13 +27,13 @@ function Open-Connection
 }
 
 Register-ArgumentCompleter -CommandName Set-Connection -ParameterName Database -ScriptBlock {
-	param($wordToComplete, $commandAst, $cursorPosition)
+	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
 	$Global:SqlConnection = $null
 
 	Get-ArrayByQuery @"
-		SELECT name from sys.databases
-"@ | ForEach-Object {
+		SELECT name from sys.databases ORDER BY name
+"@ | ? { $_ -like "*$wordToComplete*" } | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
 		}
 
