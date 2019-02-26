@@ -1,6 +1,5 @@
 # Set-StrictMode -Version Latest
 
-. $PSScriptRoot\Common.ps1
 . $PSScriptRoot\Connection.ps1
 . $PSScriptRoot\ExecuteQuery.ps1
 

@@ -11,7 +11,6 @@ function Open-Connection
 
 	if ($null -eq $Global:SqlConnection -or $null -eq $Global:SqlConnection.ConnectionString) {
 		$connectionString = "Server=$server;Database=$database;Integrated Security=True"
-		Write-Host "Create connection: $connectionString"
 		$Global:SqlConnection = New-Object System.Data.SqlClient.SqlConnection
 		$Global:SqlConnection.ConnectionString = $connectionString
 		$Global:SqlConnection.Open()
@@ -19,58 +18,46 @@ function Open-Connection
 
 
 	if ($Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Broken)) {
-		Write-Host "Broken connection closed"
 		$Global:SqlConnection.Close();
 	}
 
 	if (! $Global:SqlConnection.State.HasFlag([System.Data.ConnectionState]::Open)) {
-		Write-Host "Reopen connection : $($Global:SqlConnection.ConnectionString)"
 		$Global:SqlConnection.Open()
 	}
+}
+
+Register-ArgumentCompleter -CommandName Set-Connection -ParameterName Database -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
+
+	$Global:SqlConnection = $null
+
+	Get-ArrayByQuery @"
+		SELECT name from sys.databases
+"@ | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+		}
+
+	$Global:SqlConnection = $null
 }
 
 function Set-Connection {
 	[CmdletBinding()]
 	param (
-		[Parameter(Position=0)]
-		$server
+		[Parameter(Position=0)][string] $server,
+		[Parameter(Position=1)][string] $database
 	)
 
-	DynamicParam
-	{
-		$Global:SqlConnection = $null
-
-		# Generate and set the ValidateSet
-		$ParameterName = 'database'
-
-		$query = 'SELECT name from sys.databases'
-		$arrSet = Read-Query $query -server $server -database 'master' | Select-Object -ExpandProperty Name
-
-		$Global:SqlConnection = $null
-
-		return Get-DinamicParam $ParameterName $arrSet 1;
+	$connection = @{
+		Server=$server;
+		Database=$database
 	}
 
-	begin
+	if (!(Test-Path '~\.sqlbuilder'))
 	{
-		# Bind the parameter to a friendly variable
-		$database = $PsBoundParameters[$ParameterName]
+		New-Item -ItemType Directory '~\.sqlbuilder'
 	}
 
-	process
-	{
-		$connection = @{
-			Server=$server;
-			Database=$database
-		}
-
-		if (!(Test-Path '~\.sqlbuilder'))
-		{
-			New-Item -ItemType Directory '~\.sqlbuilder'
-		}
-
-		$connection | ConvertTo-Json | Out-File '~\.sqlbuilder\connection'
-	}
+	$connection | ConvertTo-Json | Out-File '~\.sqlbuilder\connection'
 }
 
 function Get-Connection {
