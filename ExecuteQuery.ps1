@@ -28,11 +28,11 @@ function Read-Query
 function Run {
 	param (
 		[Parameter(Position = 0, ValueFromPipeline = $true)]
-		$query = $Global:BuildQuery
+		$query
 	)
 
 	$dt = get-result $query;
-	if ( $dt.Table.Rows.Count -eq 0) {
+	if ( $dt.Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
 	$dt `
@@ -49,7 +49,12 @@ function Get-Result {
 
 	$connection = Get-Connection
 
-	Write-Host $query
-
 	return Read-Query $query -server $connection.Server -database $connection.Database
+}
+
+function Get-ArrayByQuery{
+	param (
+		$query
+	)
+	Get-Result $query | Select-Object -ExpandProperty Name
 }

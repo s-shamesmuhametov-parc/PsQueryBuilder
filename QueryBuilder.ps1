@@ -1,3 +1,5 @@
+# Set-StrictMode -Version Latest
+
 . $PSScriptRoot\Common.ps1
 . $PSScriptRoot\Connection.ps1
 . $PSScriptRoot\ExecuteQuery.ps1
@@ -27,69 +29,64 @@ function BuildQuery {
 	Write-Output $query;
 }
 
+Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
+
+	Get-ArrayByQuery @"
+		SELECT SCHEMA_NAME(schema_id) + '.' + name AS Name
+		FROM sys.all_objects
+		WHERE 1=1
+			AND type not in (''TR'', ''UK'', ''C'', ''D'', ''F'', ''PK'', ''UQ'')
+			AND (SCHEMA_NAME(schema_id) + '.' + name) LIKE N'%$cursorPosition%' ORDER BY SCHEMA_NAME(schema_id), name
+		ORDER BY SCHEMA_NAME(schema_id)
+"@ | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+		}
+}
+
 function Fro
 {
 	[CmdletBinding()]
-	param()
-	DynamicParam
-	{
-		# Generate and set the ValidateSet
-		$ParameterName = 'Table'
 
-		$query = 'SELECT SCHEMA_NAME(schema_id) + ''.'' + name AS Name FROM sys.all_objects where type not in (''TR'', ''UK'', ''C'', ''D'', ''F'', ''PK'', ''UQ'') ORDER BY SCHEMA_NAME(schema_id), name'
-		$arrSet = Get-Result $query | Select-Object -ExpandProperty Name
+	param(
+		[string]$Table
+	)
 
-		return Get-DinamicParam $ParameterName $arrSet 0;
-	}
+	$Global:qbSelect = $null
+	$Global:qbWhere = $null
+	$Global:qbOrder = $null
+	$Global:qbRoot = @($Table)
+	$Global:qbFrom = "FROM $Table"
 
-	begin
-	{
-		# Bind the parameter to a friendly variable
-		$TableName = $PsBoundParameters[$ParameterName]
-	}
+	BuildQuery | run
+}
 
-	process
-	{
-		$Global:qbSelect = $null
-		$Global:qbWhere = $null
-		$Global:qbOrder = $null
-		$Global:qbRoot = @($TableName)
-		$Global:qbFrom = "FROM $TableName"
+Register-ArgumentCompleter -CommandName Sel -ParameterName ColumnName -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
 
-		BuildQuery | run
-	}
+	Get-ArrayByQuery @"
+		SELECT ISNULL(source_table + '.', '') + name AS Name
+		FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1)
+		WHERE (source_table + '.' + name) LIKE N'%$cursorPosition%'
+"@ | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+		}
 }
 
 function Sel
 {
 	[CmdletBinding()]
-	param()
-	DynamicParam
-	{
-		# Generate and set the ValidateSet
-		$ParameterName = 'Column'
-		$query = "SELECT ISNULL(source_table + '.', '') + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
-		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+	param(
+		[string]$ColumnName
+	)
 
-		return Get-DinamicParam $ParameterName $arrSet 0;
+	if ($null -eq $Global:qbSelect) {
+		$Global:qbSelect = "SELECT TOP 50 $ColumnName"
+	}else {
+		$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
 	}
 
-	begin
-	{
-		# Bind the parameter to a friendly variable
-		$ColumnName = $PsBoundParameters[$ParameterName]
-	}
-
-	process
-	{
-		if ($null -eq $Global:qbSelect) {
-			$Global:qbSelect = "SELECT TOP 50 $ColumnName"
-		}else {
-			$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
-		}
-
-		BuildQuery | run
-	}
+	BuildQuery | run
 }
 
 function Wher {
@@ -104,6 +101,18 @@ function Wher {
 	BuildQuery | Run
 }
 
+Register-ArgumentCompleter -CommandName OrderBy -ParameterName Column -ScriptBlock {
+	param($wordToComplete, $commandAst, $cursorPosition)
+
+	Get-ArrayByQuery @"
+		SELECT source_table + '.' + name AS Name
+		FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1)
+		WHERE (source_table + '.' + name) LIKE N'%$cursorPosition%'
+"@ | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+		}
+}
+
 function OrderBy {
 	[CmdletBinding()]
 	param ()
@@ -112,8 +121,7 @@ function OrderBy {
 		$ParameterColumn = 'Column'
 		$ParameterDesc = 'Desc'
 
-		$query = "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
-		$arrSet = get-result $query | Select-Object -ExpandProperty Name
+		$arrSet = Get-ArrayByQuery "SELECT source_table + '.' + name AS Name FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Global:qbFrom', null, 1) "
 
 		$parameters = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 		$parameters.Add($ParameterColumn, (Get-StringAutocomletionParam $ParameterColumn $arrSet 0));
@@ -142,7 +150,7 @@ function Join {
 		# Generate and set the ValidateSet
 		$ParameterName = 'Join'
 
-		$query = @"
+		$arrSet = Get-ArrayByQuery @"
 	SELECT
 		'[' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'] ON [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N'] = [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N']' AS Name
 	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC
@@ -174,7 +182,6 @@ function Join {
 		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
 "@
-		$arrSet = get-result $query | Select-Object -ExpandProperty Name
 
 		return Get-DinamicParam $ParameterName $arrSet 0;
 	}
