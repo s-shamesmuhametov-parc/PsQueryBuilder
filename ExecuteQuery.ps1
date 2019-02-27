@@ -37,7 +37,7 @@ function Run {
 	)
 
 	$dt = get-result $query;
-	if ( $dt.Count -eq 0) {
+	if ( @($dt).Count -eq 0) {
 		return Write-Host "`nnothing" -NoNewline;
 	}
 	$dt `
