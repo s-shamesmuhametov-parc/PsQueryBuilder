@@ -78,13 +78,16 @@ function Sel
 {
 	[CmdletBinding()]
 	param(
-		[string]$ColumnName
+		[Parameter(Mandatory=true)]
+		[string[]]$ColumnName
 	)
 
+	$expression = [string]::Join(', ', $ColumnName);
+
 	if ($null -eq $Global:qbSelect) {
-		$Global:qbSelect = "SELECT TOP 50 $ColumnName"
+		$Global:qbSelect = "SELECT TOP 50 $expression"
 	}else {
-		$Global:qbSelect = $Global:qbSelect + ", $ColumnName"
+		$Global:qbSelect = $Global:qbSelect + ", $expression"
 	}
 
 	BuildQuery | run
