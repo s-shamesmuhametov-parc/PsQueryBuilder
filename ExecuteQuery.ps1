@@ -21,7 +21,7 @@ function Read-Query
 		$reader = $SqlCmd.ExecuteReader()
 	}
 	catch {
-		Write-Error "Query $Query"
+		Write-Error "$($_.Exception.Message). Query $Query"
 	}
 
 	$dt = new-object System.Data.DataTable
