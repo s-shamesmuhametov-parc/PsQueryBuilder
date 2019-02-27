@@ -3,7 +3,7 @@
 . $PSScriptRoot\Connection.ps1
 . $PSScriptRoot\ExecuteQuery.ps1
 
-function BuildQuery {
+function Build-Query {
 	if ($null -eq $Global:qbSelect)
 	{
 		$query = "SELECT TOP 50 *"
@@ -25,7 +25,11 @@ function BuildQuery {
 		$query = "$query $Global:qbOrder"
 	}
 
-	Write-Output $query;
+	return $query;
+}
+
+function Show-Result {
+	Build-Query | ForEach-Object { Write-Host $_; $_ } | run
 }
 
 Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
@@ -59,7 +63,7 @@ function Fro
 	$Global:qbRoot = @($Table)
 	$Global:qbFrom = "FROM $Table"
 
-	BuildQuery | run
+	Show-Result;
 }
 
 Register-ArgumentCompleter -CommandName Sel, OrderBy -ParameterName ColumnName -ScriptBlock {
@@ -78,7 +82,7 @@ function Sel
 {
 	[CmdletBinding()]
 	param(
-		[Parameter(Mandatory=true)]
+		[Parameter(Mandatory=$true)]
 		[string[]]$ColumnName
 	)
 
@@ -90,7 +94,7 @@ function Sel
 		$Global:qbSelect = $Global:qbSelect + ", $expression"
 	}
 
-	BuildQuery | run
+	Show-Result;
 }
 
 function Wher {
@@ -102,7 +106,7 @@ function Wher {
 
 	$Global:qbWhere = "WHERE $expression";
 
-	BuildQuery | Run
+	Show-Result
 }
 
 Register-ArgumentCompleter -CommandName OrderBy -ParameterName Column -ScriptBlock {
@@ -130,7 +134,7 @@ function OrderBy {
 		$Global:qbOrder += ' DESC'
 	}
 
-	BuildQuery | Run
+	Show-Result;
 }
 
 Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBlock {
@@ -184,5 +188,5 @@ function Join {
 
 	$Global:qbFrom = "$Global:qbFrom LEFT JOIN $Expression"
 
-	BuildQuery | Run
+	Show-Result;
 }
