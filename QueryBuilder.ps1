@@ -66,6 +66,27 @@ function Fro
 	Show-Result;
 }
 
+function Unio
+{
+	[CmdletBinding()]
+	param(
+		[string[]]$Tables
+	)
+
+	$columns = $Tables | Get-ArrayByQuery @"
+		SELECT ISNULL(source_table + '.', '') + name AS Name
+		FROM sys.dm_exec_describe_first_result_set (N'SELECT * $Table', null, 1)
+"@
+
+	$Global:qbSelect = $null
+	$Global:qbWhere = $null
+	$Global:qbOrder = $null
+	$Global:qbRoot = @($Table)
+	$Global:qbFrom = "FROM $Table"
+
+	Show-Result;
+}
+
 Register-ArgumentCompleter -CommandName Sel, OrderBy -ParameterName ColumnName -ScriptBlock {
 	param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
 
@@ -171,8 +192,8 @@ Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBl
 	WHERE
 		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
-"@ | ?{ ($_ -like "*$wordToComplete*") -or ([string]::IsNullOrWhiteSpace($wordToComplete)) } | ForEach-Object { "'$_'" } | ForEach-Object {
-			[System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+"@ | ?{ ($_ -like "*$wordToComplete*") -or ([string]::IsNullOrWhiteSpace($wordToComplete)) } | ForEach-Object {
+			[System.Management.Automation.CompletionResult]::new("'$_'", $_, 'ParameterValue', $_)
 		}
 }
 
