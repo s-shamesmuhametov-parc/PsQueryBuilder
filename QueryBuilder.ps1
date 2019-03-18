@@ -37,7 +37,7 @@ Register-ArgumentCompleter -CommandName Fro -ParameterName Table -ScriptBlock {
 
 	Get-Result @"
 		SELECT
-			SCHEMA_NAME(schema_id) + '.' + name AS Name,
+			'[' + SCHEMA_NAME(schema_id) + ']' + '.' + '[' + name + ']' AS Name,
 			type_desc
 		FROM sys.all_objects
 		WHERE 1=1
@@ -175,7 +175,7 @@ Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBl
 			AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME
 			AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 	WHERE
-		KCU1.TABLE_SCHEMA + '.' + KCU1.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
+		'[' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N']' IN('$([string]::Join(''', ''', $Global:qbRoot))')
 	UNION ALL
 	SELECT
 		'[' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'] ON [' + KCU1.TABLE_SCHEMA + '].[' + KCU1.TABLE_NAME + N'].[' + KCU1.COLUMN_NAME + N'] = [' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N'].[' + KCU2.COLUMN_NAME + N']' AS Name
@@ -190,7 +190,7 @@ Register-ArgumentCompleter -CommandName Join -ParameterName Expression -ScriptBl
 			AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME
 			AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 	WHERE
-		KCU2.TABLE_SCHEMA + '.' + KCU2.TABLE_NAME IN('$([string]::Join(''', ''', $Global:qbRoot))')
+		'[' + KCU2.TABLE_SCHEMA + '].[' + KCU2.TABLE_NAME + N']' IN('$([string]::Join(''', ''', $Global:qbRoot))')
 
 "@ | ?{ ($_ -like "*$wordToComplete*") -or ([string]::IsNullOrWhiteSpace($wordToComplete)) } | ForEach-Object {
 			[System.Management.Automation.CompletionResult]::new("'$_'", $_, 'ParameterValue', $_)
